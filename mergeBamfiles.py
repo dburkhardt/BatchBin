@@ -31,24 +31,28 @@ def get_barcodes( c , barcode_list ):
         return [record[0] for record in subset_ids]
 
 def mergeBamFilesPopen(barcodesToMerge, setName):
-        list_of_bamfiles = [bamdir + '/' + barcode + '.bam' for barcode in barcodesToMerge]
+        print [bamdir + '/' + barcode + '.bam' for barcode in barcodesToMerge]
+	list_of_bamfiles = [os.path.expanduser(bamdir + '/' + barcode + '.bam') for barcode in barcodesToMerge]
         if not os.path.exists('./%s.tmp'): #check to see if this particular set of files has been created
-                return subprocess.Popen(['samtools', 'merge', '%s.tmp' % setName] + list_of_bamfiles)
+                return subprocess.Popen(['samtools', 'merge', '%s.tmp' % setName] + list_of_bamfiles) 
 
 
 def main():
         args = parser.parse_args()
         barcode_list = load_barcodeFile(args.barcode_file)
-        bamdir = args.bamdir
-#        for subset in args.samples:
-#                print 'Barodes for subset %s' % subset
-#                print get_barcodes(subset, barcode_list)
-        processes = [mergeBamFilesPopen(get_barcodes(subset, barcode_list),subset) for subset in args.samples]
-        for p in processes: p.wait()
+        global bamdir 
+	bamdir = args.bamdir
+	print "Merging bamfiles..."
+	try:
+	        processes = [mergeBamFilesPopen(get_barcodes(subset, barcode_list),subset) for subset in args.samples]
+        	for p in processes: p.wait()
+	except KeyboardInterrupt:
+		for p in processes: p.kill()
+		sys.exit()
+	print "Successfully merged bamfiles!"
+
+# at this point there exists in the working directory a set of files called "subset.tmp" for subset in args.samples
         print ('done!')
 
 if __name__ == '__main__':
-        main()
-
-
-
+	main()
