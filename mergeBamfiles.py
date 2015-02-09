@@ -30,29 +30,40 @@ def get_barcodes( c , barcode_list ):
                 subset_ids = [record for record in subset_ids for entry in record if re.search(code,entry) and not re.search('[ACTG]{6}',entry)]
         return [record[0] for record in subset_ids]
 
-def mergeBamFilesPopen(barcodesToMerge, setName):
-        print [bamdir + '/' + barcode + '.bam' for barcode in barcodesToMerge]
-	list_of_bamfiles = [os.path.expanduser(bamdir + '/' + barcode + '.bam') for barcode in barcodesToMerge]
+#returns a single Popen object running samtools merge on a set of bamfiles
+def mergeBamFilesPopen(list_of_bamfiles, subset):
         if not os.path.exists('./%s.tmp'): #check to see if this particular set of files has been created
-                return subprocess.Popen(['samtools', 'merge', '%s.tmp' % setName] + list_of_bamfiles) 
+                return subprocess.Popen(['samtools', 'merge', '%s.tmp' % subset] + list_of_bamfiles) 
+
+#returns a Popen object which will run the whole MetaBat pipeline
+def runMetaBat(list_of_samples, list_of_merged_bamfiles, specificity):
+        subprocess.check_call(['mkdir', '-p','metaBatDepthFiles'])
+        makeDepthFile(sample)
+
+
+def makeDepthFile(sample):
+        return subprocess.Popen(['jgi_summarize_bam_contig_depths','--outputDepth',sample+'.depth.txt','--pairedContigs', sample+'.paired.txt',] + list_of_bamfiles)
+
+
 
 
 def main():
         args = parser.parse_args()
         barcode_list = load_barcodeFile(args.barcode_file)
         global bamdir 
-	bamdir = args.bamdir
-	print "Merging bamfiles..."
-	try:
-	        processes = [mergeBamFilesPopen(get_barcodes(subset, barcode_list),subset) for subset in args.samples]
-        	for p in processes: p.wait()
-	except KeyboardInterrupt:
-		for p in processes: p.kill()
-		sys.exit()
-	print "Successfully merged bamfiles!"
+        bamdir = args.bamdir
+        print "Merging bamfiles..."
+        list_of_bamfiles = [bamdir + '/' + barcode + '.bam' for barcode in get_barcodes(subset, barcode_list)]
+        try:
+                processes = [mergeBamFilesPopen(list_of_bamfiles,subset) for subset in args.samples]
+                for p in processes: p.wait()
+        except KeyboardInterrupt:
+                for p in processes: p.kill()
+                sys.exit()
+        print "Successfully merged bamfiles!"
 
 # at this point there exists in the working directory a set of files called "subset.tmp" for subset in args.samples
         print ('done!')
 
 if __name__ == '__main__':
-	main()
+        main()
