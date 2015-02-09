@@ -6,6 +6,8 @@ parser.add_argument('barcode_file',help='the barcode file')
 parser.add_argument('samples', nargs='+',help='a list of codes of the form PHO (Prospect hill Heated)')
 parser.add_argument('-b','--bamdir',dest='bamdir', default= '~/bamfiles',help= 'directory containing bamfiles, default is ~/bamfiles')
 
+bamdir = ''
+
 #currently uses '/home/dan/barcode_table.tsv'
 def load_barcodeFile(filename):
         barcode_file = open(filename)
@@ -29,7 +31,7 @@ def get_barcodes( c , barcode_list ):
         return [record[0] for record in subset_ids]
 
 def mergeBamFilesPopen(barcodesToMerge, setName):
-        list_of_bamfiles = [barcode + '.bam' for barcode in barcodesToMerge]
+        list_of_bamfiles = [bamdir + '/' + barcode + '.bam' for barcode in barcodesToMerge]
         if not os.path.exists('./%s.tmp'): #check to see if this particular set of files has been created
                 return subprocess.Popen(['samtools', 'merge', '%s.tmp' % setName] + list_of_bamfiles)
 
@@ -37,6 +39,7 @@ def mergeBamFilesPopen(barcodesToMerge, setName):
 def main():
         args = parser.parse_args()
         barcode_list = load_barcodeFile(args.barcode_file)
+        bamdir = args.bamdir
 #        for subset in args.samples:
 #                print 'Barodes for subset %s' % subset
 #                print get_barcodes(subset, barcode_list)
@@ -46,3 +49,6 @@ def main():
 
 if __name__ == '__main__':
         main()
+
+
+
