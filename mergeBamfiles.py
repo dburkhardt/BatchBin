@@ -8,7 +8,7 @@ rundir = '' #Will eventually look like MPH_MPC_MSH
 
 #currently uses '/home/dan/barcode_table.tsv'
 def load_barcodeFile(filename):
-        barcode_file = open(filename)
+        barcode_file = open(os.path.expanduser(filename))
         barcode_file.seek(1)
         barcodes = barcode_file.read().splitlines()
         barcode_table_asList = []
@@ -65,10 +65,10 @@ def runConcoct():
         return concoct
 
 #returns a Popen object with a single subprocess running GroopM pipeline
-def runGroopM():
+def runGroopM(list_of_bamfiles):
         database = "%s.gm" % rundir
         os.system('mkdir -p ./GroopM')
-        log_groopM = open(./GroopM/groopm.log,'a')
+        log_groopM = open('./GroopM/groopm.log','a')
         parse = "groopm parse -t 16 %s " % database + ' '.join(list_of_bamfiles)
         core = "groopm core %s" % database
         extract = "groopm extract -t 32 --prefix ./GroopM/core_only/bin_groopm %s %s" % (database , assembly)
@@ -151,8 +151,8 @@ def monitorProcesses_returnLast(list_of_processes):
                 time.sleep(60)
         return list_of_processes
 
-        keep track of processes for finishing
-        tell master when only has one thread running
+        #keep track of processes for finishing
+        #tell master when only has one thread running
 
 def merge_and_run_binning_programs(args):
 
@@ -160,13 +160,13 @@ def merge_and_run_binning_programs(args):
         list_of_bamfiles = mergeBamfiles(args.samples)
         try:
                 metabat_process_list = runMetaBat(args.samples,list_of_bamfiles)
-                concoct_process = runConcot() # will take the longest
+                concoct_process = runConcoct() # will take the longest
                 groopm_process = runGroopM(list_of_bamfiles)
                 all_processes = []
                 all_processes.extend(metabat_process_list)
-                all_processes.extend(concoct_process)
-                all_processes.extend(groopm_process)
-                return last_process = monitorProcesses_returnLast(all_processes) #TODO put keyboard interrupt in here, handle end of function processes
+                all_processes.append(concoct_process)
+                all_processes.append(groopm_process)
+                return monitorProcesses_returnLast(all_processes) #TODO put keyboard interrupt in here, handle end of function processes
         except KeyboardInterrupt:
                 for p in all_processes: p.kill
                 sys.exit()
@@ -176,7 +176,7 @@ def merge_and_run_binning_programs(args):
 def initializeArgparse():
         global parser
         parser = argparse.ArgumentParser()
-        parser.add_argument('barcode_file',help='the barcode file')
+        parser.add_argument('--barcode_file',default = '~/barcode_table.tsv',help='the barcode file')
         parser.add_argument('samples', nargs='+',help='a list of codes of the form PHO (Prospect hill Heated)')
         parser.add_argument('-b','--bamdir',dest='bamdir', default= '~/bamfiles',help= 'directory containing bamfiles, default is ~/bamfiles')
         parser.add_argument('-a','--assembly_file',dest='assembly', default='~/binning_files/1018256.scaffolds.fasta', help='path to assembly.fa, default is ~/binning_files/1018256.scaffolds.fasta')
@@ -186,4 +186,5 @@ def initializeArgparse():
 if __name__ == '__main__':
         initializeArgparse()
         args = initializeVariables()
+        barcode_table_asList = load_barcodeFile(args.barcode_file)
         merge_and_run_binning_programs(args)
