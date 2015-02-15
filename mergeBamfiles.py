@@ -125,7 +125,7 @@ def runGroopM(list_of_bamfiles):
         database = "%s.gm" % rundir
         os.system('mkdir -p ./GroopM')
         log_groopM = open('./GroopM/groopm.log','a')
-        parse = "groopm parse -t 16 %s " % database + ' '.join(list_of_bamfiles)
+        parse = "groopm parse -t 16 %s %s" % (database, assembly) + ' '.join(list_of_bamfiles)
         core = "groopm core %s" % database
         extract = "groopm extract -t 32 --prefix ./GroopM/core_only/bin_groopm %s %s" % (database , assembly)
         recruit = "groopm recruit %s" % database
