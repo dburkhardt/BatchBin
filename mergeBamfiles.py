@@ -6,6 +6,30 @@ assembly=''
 bamdir = ''
 rundir = '' #Will eventually look like MPH_MPC_MSH
 
+def initializeArgparse():
+        global parser
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--barcode_file',default = '~/barcode_table.tsv',help='the barcode file')
+        parser.add_argument('samples', nargs='+',help='a list of codes of the form PHO (Prospect hill Heated)')
+        parser.add_argument('-b','--bamdir',dest='bamdir', default= '~/bamfiles/',help= 'directory containing bamfiles, default is ~/bamfiles')
+        parser.add_argument('-a','--assembly_file',dest='assembly', default='~/binning_files/1018256.scaffolds.fasta', help='path to assembly.fa, default is ~/binning_files/1018256.scaffolds.fasta')
+
+#parses the arguments and assigns values to the global variables
+def initializeVariables():
+        args = parser.parse_args()
+        print "Binning: " + ' '.join(args.samples)
+        barcode_table_asList = load_barcodeFile(args.barcode_file)
+        global bamdir
+        bamdir = args.bamdir
+        global assembly
+        assembly = args.assembly
+        global rundir
+        rundir = '_'.join(args.samples)
+        os.system('mkdir -p %s' % rundir)
+        os.chdir('./%s' % rundir)
+        print "Placing files in " + os.getcwd()
+        return args
+
 #currently uses '/home/dan/barcode_table.tsv'
 def load_barcodeFile(filename):
         barcode_file = open(os.path.expanduser(filename))
@@ -29,6 +53,35 @@ def get_barcodes( subset , barcode_table_asList ):
         return [record[0] for record in subset_of_barcode_table] #returns only the first column of the table
 
 
+#returns a single Popen object running samtools merge on a set of bamfiles
+def mergeBamFilesPopen(list_of_barcodes, subset):
+        list_of_bamfiles = ['%s%s.bam' % (bamdir,barcode) for barcode in list_of_barcodes]
+        if not os.path.exists('./mergedBamfiles/%s.tmp.bam' % subset): #check to see if this particular set of files has been created
+                return subprocess.Popen(['samtools', 'merge', './mergedBamfiles/%s.tmp.bam' % subset] + list_of_bamfiles)
+
+#spawns a bunch of samtools merge subprocesses and writes merged bamfiles to rundir/mergedBamfiles/ (BLOCKING)
+def mergeBamfiles(samples):
+        os.system('mkdir -p ./mergedBamfiles')
+        list_of_bamfiles = ['./mergedBamfiles/'+sample+'.tmp.bam' for sample in samples]
+        try:
+                processes = [mergeBamFilesPopen(get_barcodes(subset, barcode_table_asList),subset) for subset in samples]
+                if processes[0] is None:
+                        print 'Found merged bamfiles in ./%s/mergedBamfiles' % rundir
+                        return list_of_bamfiles
+                else:
+                        print "Merging bamfiles..."
+                        for p in processes:
+                                p.wait()
+                        for p in processes:
+                                if p.returncode is not 0:
+                                        print "Merging failed"
+                                        sys.exit()
+                                else: 
+                                        print "Successfully merged bamfiles!"
+                                        return list_of_bamfiles
+        except KeyboardInterrupt:
+                for p in processes: p.kill()
+                sys.exit()
 
 #returns a List of Popen objects running MetaBat using the Specific Sensitive and Specific_Paired settings
 def runMetaBat(list_of_samples, list_of_merged_bamfiles):
@@ -56,7 +109,9 @@ def runConcoct():
         print 'Processing depth file for Concoct'
         os.system('mkdir -p ./Concoct')
         log_concoct = open('./Concoct/concoct.log','a')
-        subprocess.check_call("awk \'NR > 1 {for(x=1;x<=NF;x++) if(x == 1 || (x >= 4 && x % 2 == 0)) printf \"%s\", $x (x == NF || x == (NF-1) ? \"\\n\":\"\\t\")}' ./MetaBat.depth.txt > ./depth_concoct.txt", shell=True)
+        if not os.path.exists('./depth_concoct.txt'):
+                subprocess.check_call("awk \'NR > 1 {for(x=1;x<=NF;x++) if(x == 1 || (x >= 4 && x % 2 == 0)) printf \"%s\", $x (x == NF || x == (NF-1) ? \"\\n\":\"\\t\")}' ./MetaBat.depth.txt > ./depth_concoct.txt", shell=True)
+        else: print "found Concoct depth file"
         call_to_source_concoct_env = ". ./software/anaconda/envs/concoct_env/bin/activate concoct_env"
         call_to_bin_with_concoct = "concoct --composition_file %s --coverage_file ../depth_concoct.txt" % assembly
         concoct = subprocess.Popen('cd Concoct ; time nice -n 15 %s ; time nice -n 15 %s' % (call_to_source_concoct_env, call_to_bin_with_concoct),
@@ -66,6 +121,7 @@ def runConcoct():
 
 #returns a Popen object with a single subprocess running GroopM pipeline
 def runGroopM(list_of_bamfiles):
+        print "GroopM list of bamfiles"
         database = "%s.gm" % rundir
         os.system('mkdir -p ./GroopM')
         log_groopM = open('./GroopM/groopm.log','a')
@@ -95,50 +151,6 @@ def makeDepthFile(list_of_merged_bamfiles):
                 p.kill()
                 sys.exit()
 
-#returns a single Popen object running samtools merge on a set of bamfiles
-def mergeBamFilesPopen(list_of_barcodes, subset):
-        list_of_bamfiles = ['%s%s.bam' % (bamdir,barcode) for barcode in list_of_barcodes]
-        if not os.path.exists('./mergedBamfiles/%s.tmp.bam' % subset): #check to see if this particular set of files has been created
-                return subprocess.Popen(['samtools', 'merge', './mergedBamfiles/%s.tmp.bam' % subset] + list_of_bamfiles)
-
-#parses the arguments and assigns values to the global variables
-def initializeVariables():
-        args = parser.parse_args()
-        barcode_table_asList = load_barcodeFile(args.barcode_file)
-        global bamdir
-        bamdir = args.bamdir
-        global assembly
-        assembly = args.assembly
-        global rundir
-        rundir = '_'.join(args.samples)
-        os.system('mkdir -p %s' % rundir)
-        os.chdir('./%s' % rundir)
-        print os.getcwd()
-        return args
-
-#spawns a bunch of samtools merge subprocesses and writes merged bamfiles to rundir/mergedBamfiles/ (BLOCKING)
-def mergeBamfiles(samples):
-        print "Merging bamfiles..."
-        os.system('mkdir -p ./mergedBamfiles')
-        list_of_bamfiles = ['./mergedBamfiles/'+sample+'.tmp.bam' for sample in samples]
-        try:
-                processes = [mergeBamFilesPopen(get_barcodes(subset, barcode_table_asList),subset) for subset in samples]
-                if processes[0] is None:
-                        print 'Found merged bamfiles in ./%s/mergedBamfiles' % rundir
-                        return list_of_bamfiles
-                else:
-                        for p in processes:
-                                p.wait()
-                        for p in processes:
-                                if p.returncode is not 0:
-                                        print "Merging failed"
-                                        sys.exit()
-                                else: 
-                                        print "Successfully merged bamfiles!"
-                                        return list_of_bamfiles
-        except KeyboardInterrupt:
-                for p in processes: p.kill()
-                sys.exit()
 
 def monitorProcesses_returnLast(list_of_processes):
         num_processes = len(list_of_processes)
@@ -148,7 +160,7 @@ def monitorProcesses_returnLast(list_of_processes):
                         if p.poll() is not None:
                                 list_of_processes.remove(p)
                                 done_procs+=1
-                time.sleep(60)
+                time.sleep(5)
         return list_of_processes
 
         #keep track of processes for finishing
@@ -161,7 +173,11 @@ def merge_and_run_binning_programs(args):
         try:
                 metabat_process_list = runMetaBat(args.samples,list_of_bamfiles)
                 concoct_process = runConcoct() # will take the longest
-                groopm_process = runGroopM(list_of_bamfiles)
+                if len(list_of_bamfiles) >= 3:
+                        groopm_process = runGroopM(list_of_bamfiles)
+                else:
+                        print "Too few bamfiles to bin using GroopM. Skipping..."
+                        groopm_process = subprocess.Popen(['sleep', '0'])
                 all_processes = []
                 all_processes.extend(metabat_process_list)
                 all_processes.append(concoct_process)
@@ -173,13 +189,6 @@ def merge_and_run_binning_programs(args):
 
         print ('done!')
 
-def initializeArgparse():
-        global parser
-        parser = argparse.ArgumentParser()
-        parser.add_argument('--barcode_file',default = '~/barcode_table.tsv',help='the barcode file')
-        parser.add_argument('samples', nargs='+',help='a list of codes of the form PHO (Prospect hill Heated)')
-        parser.add_argument('-b','--bamdir',dest='bamdir', default= '~/bamfiles',help= 'directory containing bamfiles, default is ~/bamfiles')
-        parser.add_argument('-a','--assembly_file',dest='assembly', default='~/binning_files/1018256.scaffolds.fasta', help='path to assembly.fa, default is ~/binning_files/1018256.scaffolds.fasta')
 
 
 
