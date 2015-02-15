@@ -59,6 +59,11 @@ def mergeBamFilesPopen(list_of_barcodes, subset):
         if not os.path.exists('./mergedBamfiles/%s.tmp.bam' % subset): #check to see if this particular set of files has been created
                 return subprocess.Popen('samtools merge ./mergedBamfiles/%s.tmp.bam' % subset + ' '.join(list_of_bamfiles), shell=True)
 
+def indexBamFilesPopen(list_of_barcodes, subset):
+        list_of_bamfiles = ['%s/%s.bam' % (bamdir,barcode) for barcode in list_of_barcodes]
+        if not os.path.exists('./mergedBamfiles/%s.tmp.bam.bai' % subset): #check to see if this particular set of files has been created
+                return subprocess.Popen('samtools index ./mergedBamfiles/%s.tmp.bam' % subset, shell=True)
+
 #spawns a bunch of samtools merge subprocesses and writes merged bamfiles to rundir/mergedBamfiles/ (BLOCKING)
 def mergeBamfiles(samples):
         os.system('mkdir -p ./mergedBamfiles')
@@ -79,6 +84,28 @@ def mergeBamfiles(samples):
                                 else: 
                                         print "Successfully merged bamfiles!"
                                         return list_of_bamfiles
+        except KeyboardInterrupt:
+                for p in processes: p.kill()
+                sys.exit()
+
+#spawns a bunch of samtools merge subprocesses and writes merged bamfiles to rundir/mergedBamfiles/ (BLOCKING)
+def indexBamfiles(samples):
+        list_of_bamfiles = ['./mergedBamfiles/'+sample+'.tmp.bam' for sample in samples]
+        try:
+                processes = [indexBamFilesPopen(get_barcodes(subset, barcode_table_asList),subset) for subset in samples]
+                if processes[0] is None:
+                        print 'Found indexed bamfiles in ./%s/mergedBamfiles' % rundir
+                        return list_of_bamfiles
+                else:
+                        print "Indexing bamfiles..."
+                        for p in processes:
+                                p.wait()
+                        for p in processes:
+                                if p.returncode is not 0:
+                                        print "Indexing failed"
+                                        sys.exit()
+                                else: 
+                                        print "Successfully indexed bamfiles!"
         except KeyboardInterrupt:
                 for p in processes: p.kill()
                 sys.exit()
@@ -170,6 +197,7 @@ def merge_and_run_binning_programs(args):
 
         #bin using MetaBat
         list_of_bamfiles = mergeBamfiles(args.samples)
+        indexBamfiles(args.samples)
         try:
                 metabat_process_list = runMetaBat(args.samples,list_of_bamfiles)
                 concoct_process = runConcoct() # will take the longest
