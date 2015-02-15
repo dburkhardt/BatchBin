@@ -112,7 +112,7 @@ def runConcoct():
         if not os.path.exists('./depth_concoct.txt'):
                 subprocess.check_call("awk \'NR > 1 {for(x=1;x<=NF;x++) if(x == 1 || (x >= 4 && x % 2 == 0)) printf \"%s\", $x (x == NF || x == (NF-1) ? \"\\n\":\"\\t\")}' ./MetaBat.depth.txt > ./depth_concoct.txt", shell=True)
         else: print "found Concoct depth file"
-        call_to_source_concoct_env = ". ./software/anaconda/envs/concoct_env/bin/activate concoct_env"
+        call_to_source_concoct_env = ". ~/software/anaconda/envs/concoct_env/bin/activate concoct_env"
         call_to_bin_with_concoct = "concoct --composition_file %s --coverage_file ../depth_concoct.txt" % assembly
         concoct = subprocess.Popen('cd Concoct ; %s ; time nice -n 15 %s' % (call_to_source_concoct_env, call_to_bin_with_concoct),
                 stdout=log_concoct, stderr=log_concoct, shell=True, executable='/bin/bash')
