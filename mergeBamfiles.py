@@ -114,7 +114,7 @@ def runConcoct():
         else: print "found Concoct depth file"
         call_to_source_concoct_env = ". ./software/anaconda/envs/concoct_env/bin/activate concoct_env"
         call_to_bin_with_concoct = "concoct --composition_file %s --coverage_file ../depth_concoct.txt" % assembly
-        concoct = subprocess.Popen('cd Concoct ; time nice -n 15 %s ; time nice -n 15 %s' % (call_to_source_concoct_env, call_to_bin_with_concoct),
+        concoct = subprocess.Popen('cd Concoct ; %s ; time nice -n 15 %s' % (call_to_source_concoct_env, call_to_bin_with_concoct),
                 stdout=log_concoct, stderr=log_concoct, shell=True, executable='/bin/bash')
         print 'Binning using CONCOCT'
         return concoct
