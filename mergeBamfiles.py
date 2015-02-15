@@ -57,7 +57,8 @@ def get_barcodes( subset , barcode_table_asList ):
 def mergeBamFilesPopen(list_of_barcodes, subset):
         list_of_bamfiles = ['%s%s.bam' % (bamdir,barcode) for barcode in list_of_barcodes]
         if not os.path.exists('./mergedBamfiles/%s.tmp.bam' % subset): #check to see if this particular set of files has been created
-                return subprocess.Popen(['samtools', 'merge', './mergedBamfiles/%s.tmp.bam' % subset] + list_of_bamfiles)
+                return subprocess.Popen('samtools merge ./mergedBamfiles/%s.tmp.bam' % subset + ' '.join(list_of_bamfiles) +
+                        ' ; samtools index %s.tmp.bam' % subset, shell=True)
 
 #spawns a bunch of samtools merge subprocesses and writes merged bamfiles to rundir/mergedBamfiles/ (BLOCKING)
 def mergeBamfiles(samples):
