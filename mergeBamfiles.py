@@ -125,8 +125,8 @@ def runGroopM(list_of_bamfiles):
         database = "%s.gm" % rundir
         os.system('mkdir -p ./GroopM')
         log_groopM = open('./GroopM/groopm.log','a')
-        parse = "groopm parse -t 16 %s %s" % (database, assembly) + ' '.join(list_of_bamfiles)
-        core = "groopm core %s" % database
+        parse = "groopm parse -t 16 %s %s " % (database, assembly) + ' '.join(list_of_bamfiles)
+        core = "groopm core %s " % database
         extract = "groopm extract -t 32 --prefix ./GroopM/core_only/bin_groopm %s %s" % (database , assembly)
         recruit = "groopm recruit %s" % database
         extract_recruit = "groopm extract -t 32 --prefix ./GroopM/recruited/bin_groopm %s %s" % (database , assembly)
@@ -196,4 +196,5 @@ if __name__ == '__main__':
         initializeArgparse()
         args = initializeVariables()
         barcode_table_asList = load_barcodeFile(args.barcode_file)
-        merge_and_run_binning_programs(args)
+        merge_and_run_binning_programs(args).wait()
+	print "Done binning!"
