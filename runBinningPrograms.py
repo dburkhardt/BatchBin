@@ -221,10 +221,10 @@ def merge_and_run_binning_programs(samples):
 
         print ('done!')
 
-def run_binning_pipeline(argparser):
+def run_binning_pipeline(argparser, samples):
         initializeVariables(argparser)
         barcode_table_asList = load_barcodeFile(args.barcode_file)
-        return merge_and_run_binning_programs(argparser.samples)
+        return merge_and_run_binning_programs(samples)
 
 
 
