@@ -1,5 +1,5 @@
 #! /usr/bin/python
-
+import argparse
 from  runBinningPrograms import run_binning_pipeline
 
 #run_binning_pipeline(argparser, samples) takes a single parameter which is a and argparse object and returns a single process, the one which takes longest to run
