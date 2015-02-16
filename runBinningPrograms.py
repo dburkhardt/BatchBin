@@ -3,8 +3,8 @@ import re,sys,argparse,subprocess,os,time
 
 parser=None
 assembly=''
-bamdir = ''
-rundir = '' #Will eventually look like MPH_MPC_MSH
+bamdir= ''
+rundir= '' #Will eventually look like MPH_MPC_MSH
 
 def initializeArgparse():
         global parser
@@ -13,10 +13,11 @@ def initializeArgparse():
         parser.add_argument('samples', nargs='+',help='a list of codes of the form PHO (Prospect hill Heated)')
         parser.add_argument('-b','--bamdir',dest='bamdir', default= '~/bamfiles/',help= 'directory containing bamfiles, default is ~/bamfiles')
         parser.add_argument('-a','--assembly_file',dest='assembly', default='~/binning_files/1018256.scaffolds.fasta', help='path to assembly.fa, default is ~/binning_files/1018256.scaffolds.fasta')
+        return parser.parse_args()
+
 
 #parses the arguments and assigns values to the global variables
-def initializeVariables():
-        args = parser.parse_args()
+def initializeVariables(args):
         print "Binning: " + ' '.join(args.samples)
         barcode_table_asList = load_barcodeFile(args.barcode_file)
         global bamdir
@@ -220,12 +221,19 @@ def merge_and_run_binning_programs(samples):
 
         print ('done!')
 
+def run_binning_pipeline(argparser):
+        initializeVariables(argparser)
+        barcode_table_asList = load_barcodeFile(args.barcode_file)
+        return merge_and_run_binning_programs(argparser.samples)
+
+
+
 
 
 
 if __name__ == '__main__':
-        initializeArgparse()
-        args = initializeVariables()
+        argparser = initializeArgparse()
+        initializeVariables(argparser)
         barcode_table_asList = load_barcodeFile(args.barcode_file)
         merge_and_run_binning_programs(args.samples).wait()
 	print "Done binning!"
