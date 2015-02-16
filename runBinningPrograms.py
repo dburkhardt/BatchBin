@@ -69,7 +69,7 @@ def mergeBamfiles(samples):
         os.system('mkdir -p ./mergedBamfiles')
         list_of_bamfiles = ['./mergedBamfiles/'+sample+'.tmp.bam' for sample in samples]
         try:
-                processes = [mergeBamFilesPopen(get_barcodes(subset, barcode_table_asList),subset) for subset in samples]
+                processes = [mergeBamFilesPopen(get_barcodes(subset, list_of_bamfiles),subset) for subset in samples]
                 if processes[0] is None:
                         print 'Found merged bamfiles in ./%s/mergedBamfiles' % rundir
                         return list_of_bamfiles
@@ -141,7 +141,7 @@ def runConcoct():
         else: print "found Concoct depth file"
         call_to_source_concoct_env = ". ~/software/anaconda/envs/concoct_env/bin/activate concoct_env"
         call_to_bin_with_concoct = "concoct --composition_file %s --coverage_file ../depth_concoct.txt" % assembly
-        extract_bins "/home/dan/software/CONCOCT-0.4.0/scripts/extract_fasta_bins.py --output_path ./bins %s clustering_gt1000.csv" % assembly
+        extract_bins = "/home/dan/software/CONCOCT-0.4.0/scripts/extract_fasta_bins.py --output_path ./bins %s clustering_gt1000.csv" % assembly
         concoct = subprocess.Popen('cd Concoct ; %s ; time nice -n 15 %s ; time nice -n 15 %s' % (call_to_source_concoct_env, call_to_bin_with_concoct, extract_bins),
                 stdout=log_concoct, stderr=log_concoct, shell=True, executable='/bin/bash')
         print 'Binning using CONCOCT'
