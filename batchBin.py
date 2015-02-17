@@ -23,12 +23,16 @@ samples_to_run = [
 list_of_slow_processes = []
 cwd = os.getcwd()
 def run_processes(list_of_samples):
-	for samples in list_of_samples:
-		os.chdir(cwd)
-		list_of_slow_processes.append(run_binning_pipeline(argparser, samples.split()))
-		if len(list_of_slow_processes) > 0:
-			print "Waiting..."
-			list_of_slow_processes[0].wait()
+	try:
+		for samples in list_of_samples:
+			os.chdir(cwd)
+			list_of_slow_processes.append(run_binning_pipeline(argparser, samples.split()))
+			if len(list_of_slow_processes) > 0:
+				print "Waiting..."
+				list_of_slow_processes[0].wait()
+	except KeyboardInterrupt:
+		for p in list_of_slow_processes: p.kill()
+		sys.exit()
 
 def initializeArgparse():
         parser = argparse.ArgumentParser()
