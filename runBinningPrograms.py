@@ -15,7 +15,6 @@ def initializeArgparse():
         parser.add_argument('-a','--assembly_file',dest='assembly', default='~/binning_files/1018256.scaffolds.fasta', help='path to assembly.fa, default is ~/binning_files/1018256.scaffolds.fasta')
         return parser.parse_args()
 
-
 #parses the arguments and assigns values to the global variables
 def initializeVariables(args):
         print "Binning: " + ' '.join(args.samples)
@@ -53,7 +52,6 @@ def get_barcodes( subset , barcode_table_asList ):
                 subset_of_barcode_table = [record for record in subset_of_barcode_table for entry in record if re.search(code,entry) and not re.search('[ACTG]{6}',entry)]
         return [record[0] for record in subset_of_barcode_table] #returns only the first column of the table
 
-
 #returns a single Popen object running samtools merge on a set of bamfiles
 def mergeBamFilesPopen(list_of_barcodes, subset):
         list_of_bamfiles = ['%s%s.bam' % (bamdir,barcode) for barcode in list_of_barcodes]
@@ -67,14 +65,14 @@ def indexBamFilesPopen(list_of_barcodes, subset):
 
 #spawns a bunch of samtools merge subprocesses and writes merged bamfiles to rundir/mergedBamfiles/ (BLOCKING)
 def mergeBamfiles(samples, barcode_table_asList):
-	print "Merging bamfiles"
+        print "Merging bamfiles"
         os.system('mkdir -p ./mergedBamfiles')
         list_of_bamfiles = ['./mergedBamfiles/'+sample+'.tmp.bam' for sample in samples]
-	print list_of_bamfiles
+        print list_of_bamfiles
         try:
-		print [subset for subset in samples]
+                print [subset for subset in samples]
                 print [get_barcodes(subset, barcode_table_asList) for subset in samples]
-		processes = [mergeBamFilesPopen(get_barcodes(subset, barcode_table_asList),subset) for subset in samples]
+                processes = [mergeBamFilesPopen(get_barcodes(subset, barcode_table_asList),subset) for subset in samples]
                 if processes[0] is None:
                         print 'Found merged bamfiles in ./%s/mergedBamfiles' % rundir
                         return list_of_bamfiles
@@ -108,11 +106,11 @@ def indexBamfiles(samples, barcode_table_asList):
                                 if p.returncode is not 0:
                                         print "Indexing failed"
                                         sys.exit()
-#				else:
+#                                else:
                                         #print "Successfully indexed bamfiles!"
-	except KeyboardInterrupt:
+        except KeyboardInterrupt:
                 for p in processes: p.kill()
-               	sys.exit()
+                       sys.exit()
 
 #returns a List of Popen objects running MetaBat using the Specific Sensitive and Specific_Paired settings
 def runMetaBat(list_of_samples, list_of_merged_bamfiles):
@@ -164,8 +162,6 @@ def runGroopM(list_of_bamfiles):
         return subprocess.Popen('time nice -n 15 %s ; time nice -n 15 %s ; time nice -n 15 %s ; time nice -n 15 %s ; time nice -n 15 %s' % (parse, core, extract, recruit, extract_recruit),
                 stdout = log_groopM, stderr=log_groopM,shell = True , executable = '/bin/bash')
 
-
-
 #creates a file called 'MetaBat.depth.txt' in the cwd (BLOCKING)
 def makeDepthFile(list_of_merged_bamfiles):
         try:
@@ -173,37 +169,35 @@ def makeDepthFile(list_of_merged_bamfiles):
                         print 'Found MetaBat depth file. Skipping...'
                         return
                 else: 
-			depth_log = open("./depth.log",'a')
-			p = subprocess.Popen([
-                        	'jgi_summarize_bam_contig_depths',
-                        	'--outputDepth',
-                        	'MetaBat.depth.txt',
-                        	'--pairedContigs',
-                        	'MetaBat.paired.txt'] + list_of_merged_bamfiles, 
-				stdout=depth_log, stderr=depth_log)
-	                p.wait()
+                        depth_log = open("./depth.log",'a')
+                        p = subprocess.Popen([
+                                'jgi_summarize_bam_contig_depths',
+                                '--outputDepth',
+                                'MetaBat.depth.txt',
+                                '--pairedContigs',
+                                'MetaBat.paired.txt'] + list_of_merged_bamfiles, 
+                                stdout=depth_log, stderr=depth_log)
+                        p.wait()
         except KeyboardInterrupt:
-       	        p.kill()
-               	sys.exit()
-
+                       p.kill()
+                       sys.exit()
 
 def monitorProcesses_returnLast(list_of_processes):
         num_processes = len(list_of_processes)
         done_procs = 0
         try:
-		while (num_processes - done_procs) > 1:
-	                for p in list_of_processes:
-	                        if p.poll() is not None:
-	                                list_of_processes.remove(p)
-	                                done_procs+=1
-        	        time.sleep(5)
-		return list_of_processes[0]
-	except KeyboardInterrupt:
+                while (num_processes - done_procs) > 1:
+                        for p in list_of_processes:
+                                if p.poll() is not None:
+                                        list_of_processes.remove(p)
+                                        done_procs+=1
+                        time.sleep(5)
+                return list_of_processes[0]
+        except KeyboardInterrupt:
                 for p in list_of_processes: p.kill
-		sys.exit()
+                sys.exit()
 
 def merge_and_run_binning_programs(samples, barcode_table_asList):
-
         #bin using MetaBat
         list_of_bamfiles = mergeBamfiles(samples, barcode_table_asList)
         indexBamfiles(samples, barcode_table_asList)
@@ -223,23 +217,17 @@ def merge_and_run_binning_programs(samples, barcode_table_asList):
         except KeyboardInterrupt:
                 for p in all_processes: p.kill
                 sys.exit()
-
         print ('done!')
 
 def run_binning_pipeline(argparser, samples):
-	argparser.samples = samples
+        argparser.samples = samples
         initializeVariables(argparser)
         barcode_table_asList = load_barcodeFile(argparser.barcode_file)
         return merge_and_run_binning_programs(samples, barcode_table_asList)
-
-
-
-
-
 
 if __name__ == '__main__':
         argparser = initializeArgparse()
         initializeVariables(argparser)
         barcode_table_asList = load_barcodeFile(argparser.barcode_file)
         merge_and_run_binning_programs(argparser.samples, barcode_table_asList).wait()
-	print "Done binning!"
+        print "Done binning!"
