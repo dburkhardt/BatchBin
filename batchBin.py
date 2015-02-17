@@ -1,5 +1,5 @@
 #! /usr/bin/python
-import argparse
+import argparse,os
 from  runBinningPrograms import run_binning_pipeline
 
 #run_binning_pipeline(argparser, samples) takes a single parameter which is a and argparse object and returns a single process, the one which takes longest to run
@@ -21,9 +21,10 @@ samples_to_run = [
 	]
 
 list_of_slow_processes = []
-
+cwd = os.getcwd()
 def run_processes(list_of_samples):
 	for samples in list_of_samples:
+		os.chdir(cwd)
 		list_of_slow_processes.append(run_binning_pipeline(argparser, samples.split()))
 
 def initializeArgparse():
