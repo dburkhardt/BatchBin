@@ -129,7 +129,6 @@ def runMetaBat(list_of_samples, list_of_merged_bamfiles):
                         stdout=log_specific, stderr=log_specific, shell=True))
                 p.append(subprocess.Popen('time nice -n 15 metabat -i %s -a MetaBat.depth.txt -p MetaBat.paired.txt -o ./MetaBAT/SpecificPair/bin --specific -v --saveTNF saved.tnf --saveDistance saved.gprob' % assembly, 
                         stdout=log_specific_paired, stderr=log_specific_paired, shell=True, executable='/bin/bash'))
-                print 'Binning using MetaBAT...'
                 return p
         except KeyboardInterrupt:
                 for a in p: a.kill()
@@ -153,7 +152,6 @@ def runConcoct():
 
 #returns a Popen object with a single subprocess running GroopM pipeline
 def runGroopM(list_of_bamfiles):
-        print "GroopM list of bamfiles"
         database = "%s.gm" % rundir
         os.system('mkdir -p ./GroopM')
         log_groopM = open('./GroopM/groopm.log','a')
@@ -199,7 +197,7 @@ def monitorProcesses_returnLast(list_of_processes):
 	                                list_of_processes.remove(p)
 	                                done_procs+=1
         	        time.sleep(5)
-		return list_of_processes
+		return list_of_processes[0]
 	except KeyboardInterrupt:
                 for p in list_of_processes: p.kill
 		sys.exit()
