@@ -54,27 +54,27 @@ def get_barcodes( subset , barcode_table_asList ):
 
 #returns a single Popen object running samtools merge on a set of bamfiles
 def mergeBamFilesPopen(list_of_barcodes, subset):
-        list_of_bamfiles = ['%s%s.bam' % (bamdir,barcode) for barcode in list_of_barcodes]
-        if not os.path.exists('./mergedBamfiles/%s.tmp.bam' % subset): #check to see if this particular set of files has been created
-                return subprocess.Popen('samtools merge ./mergedBamfiles/%s.tmp.bam ' % subset + ' '.join(list_of_bamfiles), shell=True)
+        list_of_bamfiles = ['%s/%s.bam' % (bamdir,barcode) for barcode in list_of_barcodes]
+        if not os.path.exists('../mergedBamfiles/%s.tmp.bam' % subset): #check to see if this particular set of files has been created
+                return subprocess.Popen('samtools merge ../mergedBamfiles/%s.tmp.bam ' % subset + ' '.join(list_of_bamfiles), shell=True)
 
 def indexBamFilesPopen(list_of_barcodes, subset):
         list_of_bamfiles = ['%s/%s.bam' % (bamdir,barcode) for barcode in list_of_barcodes]
-        if not os.path.exists('./mergedBamfiles/%s.tmp.bam.bai' % subset): #check to see if this particular set of files has been created
-                return subprocess.Popen('samtools index ./mergedBamfiles/%s.tmp.bam' % subset, shell=True)
+        if not os.path.exists('../mergedBamfiles/%s.tmp.bam.bai' % subset): #check to see if this particular set of files has been created
+                return subprocess.Popen('samtools index ../mergedBamfiles/%s.tmp.bam' % subset, shell=True)
 
 #spawns a bunch of samtools merge subprocesses and writes merged bamfiles to rundir/mergedBamfiles/ (BLOCKING)
 def mergeBamfiles(samples, barcode_table_asList):
         print "Merging bamfiles"
-        os.system('mkdir -p ./mergedBamfiles')
-        list_of_bamfiles = ['./mergedBamfiles/'+sample+'.tmp.bam' for sample in samples]
+        os.system('mkdir -p ../mergedBamfiles')
+        list_of_bamfiles = ['../mergedBamfiles/'+sample+'.tmp.bam' for sample in samples]
         print list_of_bamfiles
         try:
                 print [subset for subset in samples]
                 print [get_barcodes(subset, barcode_table_asList) for subset in samples]
                 processes = [mergeBamFilesPopen(get_barcodes(subset, barcode_table_asList),subset) for subset in samples]
                 if processes[0] is None:
-                        print 'Found merged bamfiles in ./%s/mergedBamfiles' % rundir
+                        print 'Found merged bamfiles in ./mergedBamfiles'
                         return list_of_bamfiles
                 else:
                         print "Merging bamfiles..."
@@ -93,7 +93,7 @@ def mergeBamfiles(samples, barcode_table_asList):
 
 #spawns a bunch of samtools merge subprocesses and writes merged bamfiles to rundir/mergedBamfiles/ (BLOCKING)
 def indexBamfiles(samples, barcode_table_asList):
-        list_of_bamfiles = ['./mergedBamfiles/'+sample+'.tmp.bam' for sample in samples]
+        list_of_bamfiles = ['../mergedBamfiles/'+sample+'.tmp.bam' for sample in samples]
         try:
                 processes = [indexBamFilesPopen(get_barcodes(subset, barcode_table_asList),subset) for subset in samples]
                 if processes[0] is None:
@@ -110,7 +110,7 @@ def indexBamfiles(samples, barcode_table_asList):
                                         #print "Successfully indexed bamfiles!"
         except KeyboardInterrupt:
                 for p in processes: p.kill()
-                       sys.exit()
+                sys.exit()
 
 #returns a List of Popen objects running MetaBat using the Specific Sensitive and Specific_Paired settings
 def runMetaBat(list_of_samples, list_of_merged_bamfiles):

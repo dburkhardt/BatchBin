@@ -11,7 +11,7 @@ samples_to_run = [
 	'MPH MPC MSH MSC MBH MBC',
 	'OPH OPC OSH OSC OBH OBC',
 	'MP MS MB OP OS OB',
-	'PH SH BH PO SO BO',
+	'PH SH BH PC SC BC',
 	'PH SH BH',
 	'PO SO BO',
 	'MP MS MB',
@@ -27,12 +27,12 @@ def run_processes(list_of_samples):
 		for samples in list_of_samples:
 			os.chdir(cwd)
 			list_of_slow_processes.append(run_binning_pipeline(argparser, samples.split()))
-			if len(list_of_slow_processes) > 0:
+			if len(list_of_slow_processes) > 2:
 				print "Waiting..."
 				list_of_slow_processes[0].wait()
 	except KeyboardInterrupt:
 		for p in list_of_slow_processes: p.kill()
-		sys.exit()
+                sys.exit()
 
 def initializeArgparse():
         parser = argparse.ArgumentParser()
